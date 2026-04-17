@@ -18,6 +18,7 @@ import { cashDrawerRoutes } from './modules/cash-drawer/cash-drawer.routes.js'
 import { chatRoutes } from './modules/chat/chat.routes.js'
 import { messengerWebhook } from './messenger/webhook.js'
 import { buildBotEngineDeps } from './bot/deps.js'
+import { getEmbedder } from './services/embedding.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -58,9 +59,11 @@ export async function buildServer() {
   server.decorate('db', db)
 
   // ─── Bot Engine ───────────────────────────────────────────────────────────
+  // Load MiniLM embedder in background — FAQ matching activates once ready
 
+  const embedder = await getEmbedder()
   const botEngine = new BotEngine(
-    { anthropicApiKey: process.env.ANTHROPIC_API_KEY! },
+    { anthropicApiKey: process.env.ANTHROPIC_API_KEY!, embedder },
     buildBotEngineDeps(db)
   )
   server.decorate('botEngine', botEngine)
