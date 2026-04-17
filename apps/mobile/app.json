@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Litro",
+    "slug": "litro",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#071812"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#071812"
+      },
+      "package": "app.litro.android"
+    },
+    "ios": {
+      "bundleIdentifier": "app.litro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-camera",
+      "expo-secure-store"
+    ],
+    "scheme": "litro"
+  }
+}
