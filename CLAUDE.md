@@ -99,3 +99,5 @@ Each API module in `apps/api/src/modules/<name>/` contains:
 - `<name>.schema.ts` — Zod validation schemas
 
 Services import from `@litro/db` for database access. Never import from other modules' service files — go through the service's public interface or use events.
+
+Handle my Git and GitHub CLI tasks committing, branching, pulling, and pushing
