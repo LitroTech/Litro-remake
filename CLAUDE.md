@@ -100,4 +100,9 @@ Each API module in `apps/api/src/modules/<name>/` contains:
 
 Services import from `@litro/db` for database access. Never import from other modules' service files — go through the service's public interface or use events.
 
-Handle my Git and GitHub CLI tasks committing, branching, pulling, and pushing
+# Claude for Chrome
+
+- Use `read_page` to get element refs from the accessibility tree
+- Use `find` to locate elements by description
+- Click/interact using `ref`, not coordinates
+- NEVER take screenshots unless explicitly requested by the user
