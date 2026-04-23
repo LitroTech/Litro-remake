@@ -65,7 +65,6 @@ export interface BotEngineDeps {
 }
 
 export interface BotEngineConfig {
-  anthropicApiKey: string
   /** Optional — enables MiniLM FAQ semantic matching. Pass from embedding service. */
   embedder?: EmbedderFn
 }
@@ -79,7 +78,7 @@ export class BotEngine {
   private embedder: EmbedderFn | null = null
 
   constructor(config: BotEngineConfig, deps: BotEngineDeps) {
-    this.ai = new AiEngine(config.anthropicApiKey)
+    this.ai = new AiEngine()
     this.deps = deps
     if (config.embedder) {
       this.embedder = config.embedder

@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.0",
+    "@heyputer/puter.js": "^2.0.0",
     "@litro/types": "workspace:*",
     "@litro/db": "workspace:*"
   },
