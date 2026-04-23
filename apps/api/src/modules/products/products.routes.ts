@@ -63,6 +63,20 @@ export const productsRoutes: FastifyPluginAsync = async (server) => {
     return { ok: true, data: toProductResponse(product) }
   })
 
+  // Get single product
+  server.get('/:id', async (request, reply) => {
+    const { storeId } = request.session
+    const { id } = request.params as { id: string }
+
+    const [product] = await db
+      .select()
+      .from(products)
+      .where(and(eq(products.id, id), eq(products.storeId, storeId), sql`${products.deletedAt} IS NULL`))
+
+    if (!product) return reply.code(404).send({ ok: false, error: 'Not found' })
+    return { ok: true, data: toProductResponse(product) }
+  })
+
   // Update product
   server.patch('/:id', async (request, reply) => {
     const { storeId } = request.session
