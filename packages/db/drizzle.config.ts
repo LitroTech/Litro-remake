@@ -1,11 +1,6 @@
-import { config } from 'dotenv'
-import { resolve } from 'path'
 import type { Config } from 'drizzle-kit'
 
-// Try packages/db/.env first, fall back to apps/api/.env
-config({ path: resolve(__dirname, '.env') })
-config({ path: resolve(__dirname, '../../apps/api/.env') })
-
+// DATABASE_URL is injected by dotenv-cli in the db:migrate / db:generate scripts
 export default {
   schema: './src/schema/index.ts',
   out: './migrations',
