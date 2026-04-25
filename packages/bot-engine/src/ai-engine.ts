@@ -1,4 +1,3 @@
-import { puter } from '@heyputer/puter.js'
 import type { ChatResponse } from '@heyputer/puter.js'
 import type { CartItem } from '@litro/types'
 import {
@@ -27,6 +26,7 @@ export class AiEngine {
     const { systemContent, userContent } = buildCorrectionPrompt(ctx, userMessage)
     const prompt = `${systemContent}\n\n${userContent}`
 
+    const { puter } = await import('@heyputer/puter.js')
     const response = await puter.ai.chat(prompt, { model: CORRECTION_MODEL })
     const raw = extractText(response)
     return parseCorrectionResponse(raw, ctx.cart)
@@ -39,6 +39,7 @@ export class AiEngine {
     const { systemContent, userContent } = buildBusinessQuestionPrompt(ctx, question)
     const prompt = `${systemContent}\n\n${userContent}`
 
+    const { puter } = await import('@heyputer/puter.js')
     const response = await puter.ai.chat(prompt, { model: QUESTION_MODEL })
     const reply = extractText(response)
     return { reply }
