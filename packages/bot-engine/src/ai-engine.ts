@@ -1,4 +1,5 @@
 import { puter } from '@heyputer/puter.js'
+import type { ChatResponse } from '@heyputer/puter.js'
 import type { CartItem } from '@litro/types'
 import {
   buildCorrectionPrompt,
@@ -27,7 +28,7 @@ export class AiEngine {
     const prompt = `${systemContent}\n\n${userContent}`
 
     const response = await puter.ai.chat(prompt, { model: CORRECTION_MODEL })
-    const raw = response?.message?.content?.[0]?.text ?? ''
+    const raw = extractText(response)
     return parseCorrectionResponse(raw, ctx.cart)
   }
 
@@ -39,7 +40,7 @@ export class AiEngine {
     const prompt = `${systemContent}\n\n${userContent}`
 
     const response = await puter.ai.chat(prompt, { model: QUESTION_MODEL })
-    const reply = response?.message?.content?.[0]?.text ?? ''
+    const reply = extractText(response)
     return { reply }
   }
 
@@ -65,6 +66,22 @@ export class AiEngine {
 
     return null
   }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function extractText(response: ChatResponse): string {
+  const content = response?.message?.content
+  if (!content) return ''
+  const items = Array.isArray(content) ? content : [content]
+  for (const item of items) {
+    if (typeof item === 'string') return item
+    if (typeof item === 'object' && item !== null && 'text' in item) {
+      const t = (item as Record<string, unknown>).text
+      if (typeof t === 'string') return t
+    }
+  }
+  return ''
 }
 
 // ─── Parsing ──────────────────────────────────────────────────────────────────
