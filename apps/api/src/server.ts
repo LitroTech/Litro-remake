@@ -31,6 +31,9 @@ declare module 'fastify' {
 }
 
 export async function buildServer() {
+  const DB_URL = process.env.DATABASE_URL ?? 'postgresql://litro:litro@localhost:5432/litro'
+  const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379'
+  const JWT_SECRET = process.env.JWT_SECRET ?? 'litro-dev-secret-do-not-use-in-prod'
   const server = Fastify({
     logger: {
       level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -46,7 +49,7 @@ export async function buildServer() {
   })
 
   await server.register(jwt, {
-    secret: process.env.JWT_SECRET!,
+    secret: JWT_SECRET,
   })
 
   await server.register(multipart, {
@@ -55,7 +58,7 @@ export async function buildServer() {
 
   // ─── Database ─────────────────────────────────────────────────────────────
 
-  const db = createDb(process.env.DATABASE_URL!)
+  const db = createDb(DB_URL)
   server.decorate('db', db)
 
   // ─── Bot Engine ───────────────────────────────────────────────────────────
