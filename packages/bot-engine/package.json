@@ -17,8 +17,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
-    "@litro/types": "workspace:*",
-    "@litro/db": "workspace:*"
+    "@heyputer/puter.js": "^2.2.15",
+    "@litro/db": "workspace:*",
+    "@litro/types": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.5.0"

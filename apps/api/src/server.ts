@@ -63,7 +63,7 @@ export async function buildServer() {
 
   const embedder = await getEmbedder()
   const botEngine = new BotEngine(
-    { anthropicApiKey: process.env.ANTHROPIC_API_KEY!, embedder },
+    { aiApiKey: process.env.PUTER_TOKEN ?? process.env.ANTHROPIC_API_KEY, embedder },
     buildBotEngineDeps(db)
   )
   server.decorate('botEngine', botEngine)

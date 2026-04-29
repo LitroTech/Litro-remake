@@ -1,13 +1,13 @@
-import Anthropic from '@anthropic-ai/sdk'
 import type { CartItem } from '@litro/types'
 import {
   buildCorrectionPrompt,
   buildBusinessQuestionPrompt,
   type StoreContext,
 } from './context-builder.js'
+import { createRequire } from 'module';
 
-const CORRECTION_MODEL = 'claude-haiku-4-5-20251001'
-const QUESTION_MODEL = 'claude-sonnet-4-6'
+const require = createRequire(import.meta.url);
+const { init } = require("@heyputer/puter.js/src/init.cjs");
 
 export interface CorrectionResult {
   reply: string
@@ -19,10 +19,10 @@ export interface QuestionResult {
 }
 
 export class AiEngine {
-  private client: Anthropic
+  private puter: any
 
-  constructor(apiKey: string) {
-    this.client = new Anthropic({ apiKey })
+  constructor(token?: string) {
+    this.puter = init(token);
   }
 
   /**
@@ -36,22 +36,10 @@ export class AiEngine {
   ): Promise<CorrectionResult> {
     const { systemContent, userContent } = buildCorrectionPrompt(ctx, userMessage)
 
-    const response = await this.client.messages.create({
-      model: CORRECTION_MODEL,
-      max_tokens: 512,
-      system: [
-        {
-          type: 'text',
-          text: systemContent,
-          // Cache the system prompt — product catalog rarely changes within a session
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages: [{ role: 'user', content: userContent }],
-    })
+    // Puter.js currently provides a unified chat interface
+    const response = await this.puter.ai.chat(`${systemContent}\n\nUser: ${userContent}`)
 
-    const raw = response.content[0].type === 'text' ? response.content[0].text : ''
-    return parseCorrectionResponse(raw, ctx.cart)
+    return parseCorrectionResponse(response, ctx.cart)
   }
 
   /**
@@ -67,22 +55,9 @@ export class AiEngine {
       question
     )
 
-    const response = await this.client.messages.create({
-      model: QUESTION_MODEL,
-      max_tokens: 1024,
-      system: [
-        {
-          type: 'text',
-          text: systemContent,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages: [{ role: 'user', content: userContent }],
-    })
+    const response = await this.puter.ai.chat(`${systemContent}\n\nUser: ${userContent}`)
 
-    const reply =
-      response.content[0].type === 'text' ? response.content[0].text : ''
-    return { reply }
+    return { reply: response }
   }
 
   /**
