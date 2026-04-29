@@ -56,6 +56,8 @@ export interface Product {
   stockMode: StockMode
   /** Only set when stockMode = 'numerical' */
   quantity: number | null
+  /** Starting quantity used to compute stock color thresholds (>50% green, 20-50% yellow, <20% red) */
+  initialQuantity: number | null
   /** Only set when stockMode = 'descriptive' */
   stockLevel: StockLevel | null
   createdAt: string
@@ -262,11 +264,15 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiError
 
 export interface OwnerSession {
   storeId: string
+  storeName: string
+  subscriptionTier: SubscriptionTier
   role: 'owner'
 }
 
 export interface StaffSession {
   storeId: string
+  storeName: string
+  subscriptionTier: SubscriptionTier
   staffId: string
   role: 'staff'
 }
