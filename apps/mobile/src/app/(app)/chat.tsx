@@ -15,13 +15,46 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing } from '../../constants/theme';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
-import type { BotResponse } from '@litro/types';
+import type { BotAction, BotResponse, CartItem } from '@litro/types';
 
 interface Message {
   id: string;
   text: string;
   sender: 'user' | 'bot';
   timestamp: Date;
+}
+
+async function executeBotAction(action: BotAction, cartItems: CartItem[]): Promise<void> {
+  switch (action.type) {
+    case 'submit_transaction':
+      await api.post('/transactions', {
+        items: cartItems,
+        paymentMethod: action.paymentMethod,
+        creditCustomerId: action.creditCustomerId,
+        channel: 'app',
+      });
+      break;
+
+    case 'log_credit_sale':
+      await api.post('/transactions', {
+        items: cartItems,
+        paymentMethod: 'credit',
+        creditCustomerId: action.customerId,
+        channel: 'app',
+      });
+      break;
+
+    case 'log_credit_payment':
+      await api.post('/credits/payments', {
+        customerId: action.customerId,
+        amount: action.amount,
+      });
+      break;
+
+    case 'show_stock':
+      // Bot reply already contains the stock level — nothing to do in the UI
+      break;
+  }
 }
 
 export default function ChatScreen() {
@@ -36,7 +69,7 @@ export default function ChatScreen() {
   ]);
   const [loading, setLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const { cart, updateCart } = useAppStore();
+  const { cart, updateCart, clearCart } = useAppStore();
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
@@ -67,11 +100,35 @@ export default function ChatScreen() {
 
       setMessages((prev) => [...prev, botMessage]);
 
+      // Snapshot the cart before any update — this is what gets submitted to the API
+      const cartSnapshot = response.cartUpdate ?? cart;
+
       if (response.cartUpdate) {
         updateCart(response.cartUpdate);
       }
-      
-      // TODO: Handle actions like submit_transaction or log_credit_sale
+
+      if (response.action) {
+        try {
+          await executeBotAction(response.action, cartSnapshot);
+
+          if (
+            response.action.type === 'submit_transaction' ||
+            response.action.type === 'log_credit_sale'
+          ) {
+            clearCart();
+          }
+        } catch (actionError: any) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: (Date.now() + 2).toString(),
+              text: `Hindi na-process ang order: ${actionError.message}`,
+              sender: 'bot',
+              timestamp: new Date(),
+            },
+          ]);
+        }
+      }
     } catch (error: any) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),

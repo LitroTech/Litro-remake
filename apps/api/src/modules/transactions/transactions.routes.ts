@@ -1,7 +1,8 @@
+import { createHash } from 'crypto'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { eq, and, sql, desc } from 'drizzle-orm'
-import { transactions, transactionItems, products, staffMembers } from '@litro/db'
+import { transactions, transactionItems, products, staffMembers, stores } from '@litro/db'
 
 const CartItemSchema = z.object({
   productId: z.string().uuid().nullable(),
@@ -149,14 +150,23 @@ export const transactionsRoutes: FastifyPluginAsync = async (server) => {
     return { ok: true, data: { id: result.id, totalAmount: parseFloat(result.totalAmount) } }
   })
 
-  // Void a transaction (requires owner PIN)
+  // Void a transaction (requires owner PIN = recovery code)
   server.post('/:id/void', async (request, reply) => {
     const { storeId } = request.session
     const { id } = request.params as { id: string }
     const { ownerPin } = VoidSchema.parse(request.body)
 
-    // Verify owner PIN against store's ownerTokenHash
-    // In a real impl, hash the PIN and compare — using a simple check here as a placeholder
+    const [store] = await db
+      .select({ recoveryCodeHash: stores.recoveryCodeHash })
+      .from(stores)
+      .where(eq(stores.id, storeId))
+
+    if (!store) return reply.code(404).send({ ok: false, error: 'Store not found' })
+
+    if (createHash('sha256').update(ownerPin).digest('hex') !== store.recoveryCodeHash) {
+      return reply.code(403).send({ ok: false, error: 'Invalid PIN' })
+    }
+
     const [tx] = await db
       .select()
       .from(transactions)
