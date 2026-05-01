@@ -60,6 +60,8 @@ export interface Product {
   initialQuantity: number | null
   /** Only set when stockMode = 'descriptive' */
   stockLevel: StockLevel | null
+  /** Server-computed stock color — use this instead of computing client-side */
+  stockColor: StockColor | null
   createdAt: string
   updatedAt: string
   deletedAt: string | null
