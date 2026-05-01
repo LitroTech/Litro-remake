@@ -1,6 +1,14 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { eq, and } from 'drizzle-orm'
-import { messengerCarts, staffMembers, stores } from '@litro/db'
+import { eq, and, sql } from 'drizzle-orm'
+import {
+  messengerCarts,
+  staffMembers,
+  stores,
+  transactions,
+  transactionItems,
+  products,
+  creditPayments,
+} from '@litro/db'
 import type { CartItem, Language } from '@litro/types'
 
 const PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN!
@@ -114,14 +122,102 @@ async function processMessengerMessage(
       .where(eq(messengerCarts.psid, psid))
   }
 
-  // Execute side-effect actions
-  if (response.action?.type === 'submit_transaction') {
-    // Delegate to transaction service — simplified here
-    await sendMessage(psid, response.reply)
-    return
+  // Items to submit = updated cart if bot changed it, else current DB cart
+  const cartItems: CartItem[] = response.cartUpdate ?? (cart.items as CartItem[])
+
+  if (response.action) {
+    switch (response.action.type) {
+      case 'submit_transaction':
+      case 'log_credit_sale': {
+        const paymentMethod =
+          response.action.type === 'log_credit_sale' ? 'credit' : response.action.paymentMethod
+        const creditCustomerId =
+          response.action.type === 'log_credit_sale'
+            ? response.action.customerId
+            : (response.action.creditCustomerId ?? null)
+
+        if (cartItems.length > 0) {
+          await submitTransaction(db, {
+            storeId: cart.storeId,
+            staffId: staff.id,
+            items: cartItems,
+            paymentMethod,
+            creditCustomerId,
+          })
+        }
+
+        await db
+          .update(messengerCarts)
+          .set({ items: [], updatedAt: new Date() })
+          .where(eq(messengerCarts.psid, psid))
+        break
+      }
+
+      case 'log_credit_payment':
+        await db.insert(creditPayments).values({
+          storeId: cart.storeId,
+          customerId: response.action.customerId,
+          amount: response.action.amount.toString(),
+          loggedBy: staff.id,
+        })
+        break
+
+      case 'show_stock':
+        // Reply already contains stock info — nothing extra to do
+        break
+    }
   }
 
   await sendMessage(psid, response.reply)
+}
+
+async function submitTransaction(
+  db: ReturnType<typeof import('@litro/db').createDb>,
+  params: {
+    storeId: string
+    staffId: string
+    items: CartItem[]
+    paymentMethod: string
+    creditCustomerId: string | null
+  }
+) {
+  const total = params.items.reduce((s, i) => s + Number(i.subtotal), 0)
+
+  await db.transaction(async (tx) => {
+    const [newTx] = await tx
+      .insert(transactions)
+      .values({
+        storeId: params.storeId,
+        staffId: params.staffId,
+        paymentMethod: params.paymentMethod,
+        totalAmount: total.toString(),
+        creditCustomerId: params.creditCustomerId,
+        channel: 'messenger',
+      })
+      .returning()
+
+    await tx.insert(transactionItems).values(
+      params.items.map((item) => ({
+        transactionId: newTx.id,
+        productId: item.productId,
+        productName: item.productName,
+        unitPrice: item.unitPrice.toString(),
+        quantity: item.quantity,
+        subtotal: item.subtotal.toString(),
+      }))
+    )
+
+    for (const item of params.items) {
+      if (!item.productId) continue
+      await tx
+        .update(products)
+        .set({
+          quantity: sql`GREATEST(0, ${products.quantity} - ${item.quantity})`,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(products.id, item.productId), eq(products.stockMode, 'numerical')))
+    }
+  })
 }
 
 async function handleMessengerJoin(
